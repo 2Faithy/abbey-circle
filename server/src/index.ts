@@ -4,6 +4,8 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import authRoutes from "./routes/auth.routes";
 import accountRoutes from "./routes/account.routes";
+import userRoutes from "./routes/user.routes";
+import connectionRoutes from "./routes/connection.routes";
 
 const app = express();
 
@@ -20,6 +22,8 @@ app.get("/health", (_req, res) => {
 
 app.use("/auth", authRoutes);
 app.use("/me", accountRoutes);
+app.use("/users", userRoutes);
+app.use("/connections", connectionRoutes);
 
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {

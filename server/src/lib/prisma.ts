@@ -1,16 +1,6 @@
-import express from "express";
-import cors from "cors";
-import "dotenv/config";
+import { PrismaClient } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
 
-const app = express();
-app.use(cors());
-app.use(express.json());
+const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
 
-app.get("/health", (_req, res) => {
-  res.json({ status: "ok" });
-});
-
-const PORT = process.env.PORT || 4000;
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-});
+export const prisma = new PrismaClient({ adapter });

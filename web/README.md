@@ -1,75 +1,96 @@
-# React + TypeScript + Vite
+# Abbey Circle
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A mortgage-industry professional network — Loan Officers, Realtors, and Clients can create profiles and build connections. Built for the Abbey FullStack Engineer Challenge.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- **Authentication** — email/password registration and login, JWT access tokens (15 min) + rotating refresh tokens stored server-side (httpOnly cookie), real logout that revokes the session in the database.
+- **Accounts** — each user has a profile (name, role, company, bio, phone) they can view and update.
+- **Relationships** — users can send, accept, and decline connection requests, with server-side authorization (only the recipient can accept/decline, no duplicate or self-connections).
 
-## React Compiler
+## Tech Stack
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+| Layer | Technology |
+|---|---|
+| Backend | Node.js, Express, TypeScript, PostgreSQL, Prisma |
+| Web Frontend | React, TypeScript, Vite, Tailwind CSS, React Query |
+| Mobile | React Native (Expo) |
+| Auth | JWT (access + rotating refresh tokens) |
 
-## Expanding the ESLint configuration
+## Project Structure
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+abbey-circle/
+server/ # Express API + Prisma schema
+web/ # React web frontend
+mobile/ # React Native app
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+## Running Locally
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### Prerequisites
+- Node.js 18+
+- PostgreSQL running locally (or update `DATABASE_URL` to point at any Postgres instance)
 
+### 1. Backend
+
+```bash
+cd server
+npm install
+# create a .env file — see server/.env.example
+npx prisma migrate dev
+npx prisma db seed
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://npmx.dev/package/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://npmx.dev/package/eslint-plugin-react-dom) for React-specific lint rules:
+Server runs on `http://localhost:4000`.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+**Demo accounts** (seeded, password `password123` for all):
+- sarah.loanofficer@abbeycircle.com
+- mike.realtor@abbeycircle.com
+- amaka.client@abbeycircle.com
+- david.loanofficer@abbeycircle.com
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### 2. Web Frontend
 
+```bash
+cd web
+npm install
+npm run dev
 ```
+
+Runs on `http://localhost:5173`.
+
+### 3. Mobile
+
+```bash
+cd mobile
+npm install
+npx expo start
+```
+
+## API Reference
+
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| POST | `/auth/register` | – | Create account |
+| POST | `/auth/login` | – | Log in |
+| POST | `/auth/refresh` | Cookie | Rotate access token |
+| POST | `/auth/logout` | Cookie | Revoke session |
+| GET | `/me` | Bearer | Get own profile |
+| PATCH | `/me` | Bearer | Update own profile |
+| GET | `/users?search=` | Bearer | Search users |
+| GET | `/connections?status=` | Bearer | List my connections |
+| POST | `/connections/request/:userId` | Bearer | Send connection request |
+| POST | `/connections/:id/accept` | Bearer | Accept a request |
+| POST | `/connections/:id/decline` | Bearer | Decline a request |
+
+## Live Demo
+
+- Web: _(coming)_
+- API: _(coming)_
+
+## Architecture Notes
+
+- **Refresh tokens are rotated and stored hashed in Postgres**, not just trusted as stateless JWTs — this makes server-side logout and revocation actually possible, not just cosmetic.
+- **Access tokens live in memory on the frontend**, never localStorage, to reduce XSS exposure. Session is silently restored on page load via the httpOnly refresh cookie.
+- **Connections are directional but queried bidirectionally** — a unique constraint on `(requesterId, addresseeId)` combined with an OR-based existence check prevents duplicate or reversed-duplicate requests.

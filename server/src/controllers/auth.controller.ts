@@ -35,8 +35,10 @@ async function issueTokens(userId: string, res: Response) {
   });
 
   const accessToken = signAccessToken({ userId });
+  // Web relies on the httpOnly cookie; mobile has no cookie jar, so we also
+  // return the refresh token in the JSON body for clients to store themselves.
   setRefreshCookie(res, refreshToken);
-  return accessToken;
+  return { accessToken, refreshToken };
 }
 
 export async function register(req: Request, res: Response) {
@@ -56,9 +58,10 @@ export async function register(req: Request, res: Response) {
     data: { email, passwordHash, name, role, company },
   });
 
-  const accessToken = await issueTokens(user.id, res);
+  const { accessToken, refreshToken } = await issueTokens(user.id, res);
   return res.status(201).json({
     accessToken,
+    refreshToken,
     user: { id: user.id, email: user.email, name: user.name, role: user.role },
   });
 }
@@ -80,15 +83,17 @@ export async function login(req: Request, res: Response) {
     return res.status(401).json({ error: "Invalid credentials" });
   }
 
-  const accessToken = await issueTokens(user.id, res);
+  const { accessToken, refreshToken } = await issueTokens(user.id, res);
   return res.json({
     accessToken,
+    refreshToken,
     user: { id: user.id, email: user.email, name: user.name, role: user.role },
   });
 }
 
 export async function refresh(req: Request, res: Response) {
-  const token = req.cookies?.[REFRESH_COOKIE_NAME];
+  // Web sends the refresh token via httpOnly cookie; mobile sends it explicitly in the body.
+  const token = req.cookies?.[REFRESH_COOKIE_NAME] || req.body?.refreshToken;
   if (!token) {
     return res.status(401).json({ error: "No refresh token" });
   }
@@ -114,12 +119,12 @@ export async function refresh(req: Request, res: Response) {
     data: { revokedAt: new Date() },
   });
 
-  const accessToken = await issueTokens(payload.userId, res);
-  return res.json({ accessToken });
+  const { accessToken, refreshToken: newRefreshToken } = await issueTokens(payload.userId, res);
+  return res.json({ accessToken, refreshToken: newRefreshToken });
 }
 
 export async function logout(req: Request, res: Response) {
-  const token = req.cookies?.[REFRESH_COOKIE_NAME];
+  const token = req.cookies?.[REFRESH_COOKIE_NAME] || req.body?.refreshToken;
   if (token) {
     try {
       const payload = verifyRefreshToken(token);

@@ -92,6 +92,10 @@ npx expo start
 | POST | `/connections/:id/accept` | Bearer | Accept a request |
 | POST | `/connections/:id/decline` | Bearer | Decline a request |
 
+## Postman Collection
+
+A ready-to-use Postman collection is included at `postman/Abbey-Circle-API.postman_collection.json`. Import it into Postman, and it's pre-configured to hit the live API (`baseUrl` variable) — just run **Login** first and every other request will automatically use the returned access token.
+
 ## Architecture Notes
 
 - **Refresh tokens are rotated and stored hashed in Postgres**, not just trusted as stateless JWTs — this makes server-side logout and revocation actually possible, not just cosmetic.
